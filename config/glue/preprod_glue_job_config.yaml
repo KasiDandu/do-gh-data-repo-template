@@ -1,0 +1,11 @@
+# script_location and extra_py_files are filled in by glue-build-publish-deploy.
+glue_job_settings:
+  glue_version: "4.0"
+  worker_type: G.1X
+  number_of_workers: 2
+  timeout: 30
+  default_arguments:
+    "--enable-metrics": "true"
+queue_settings:
+  visibility_timeout_seconds: 120
+  max_receive_count: 3

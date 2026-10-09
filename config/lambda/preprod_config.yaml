@@ -1,0 +1,6 @@
+# s3_bucket and s3_key are filled in by lambda-build-publish-deploy.
+lambda_settings:
+  handler: handler.lambda_handler
+  runtime: python3.12
+  timeout: 60
+  memory_size: 256

@@ -1,0 +1,43 @@
+name: 10-dev-env-build-and-publish
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+  pull-requests: read
+
+jobs:
+  checks:
+    uses: KasiDandu/do-gh-shared-actions/.github/workflows/pull-request-checks.yaml@release/v1
+
+  glue:
+    needs: checks
+    if: github.event_name != 'pull_request' && vars.ENABLE_GLUE == 'true'
+    uses: KasiDandu/do-gh-shared-actions/.github/workflows/glue-build-publish-deploy.yaml@release/v1
+    with:
+      environment: dev
+      data_pipeline: ${{ vars.DATA_PIPELINE }}
+      blueprint_type: ${{ vars.BLUEPRINT_TYPE }}
+      infra_ref: ${{ github.ref_name }} # INFRA_REF = same branch name in the infra repo
+    secrets:
+      INFRA_REPO_TOKEN: ${{ secrets.GH_AUTOMATION_TOKEN }}
+
+  lambda:
+    needs: [checks, glue] # after glue, so the two infra commits don't race
+    if: >-
+      !cancelled() && needs.checks.result == 'success' &&
+      github.event_name != 'pull_request' && vars.ENABLE_LAMBDA == 'true'
+    uses: KasiDandu/do-gh-shared-actions/.github/workflows/lambda-build-publish-deploy.yaml@release/v1
+    with:
+      environment: dev
+      data_pipeline: ${{ vars.DATA_PIPELINE }}
+      blueprint_type: ${{ vars.BLUEPRINT_TYPE }}
+      infra_ref: ${{ github.ref_name }}
+    secrets:
+      INFRA_REPO_TOKEN: ${{ secrets.GH_AUTOMATION_TOKEN }}

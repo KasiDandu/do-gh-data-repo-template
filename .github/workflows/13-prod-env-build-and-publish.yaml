@@ -1,0 +1,37 @@
+name: 13-prod-env-build-and-publish
+
+on:
+  push:
+    tags: ["pd-*"]
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  checks:
+    uses: KasiDandu/do-gh-shared-actions/.github/workflows/pull-request-checks.yaml@release/v1
+
+  glue:
+    needs: checks
+    if: vars.ENABLE_GLUE == 'true'
+    uses: KasiDandu/do-gh-shared-actions/.github/workflows/glue-build-publish-deploy.yaml@release/v1
+    with:
+      environment: prod
+      data_pipeline: ${{ vars.DATA_PIPELINE }}
+      blueprint_type: ${{ vars.BLUEPRINT_TYPE }}
+      infra_ref: main
+    secrets:
+      INFRA_REPO_TOKEN: ${{ secrets.GH_AUTOMATION_TOKEN }}
+
+  lambda:
+    needs: [checks, glue]
+    if: "!cancelled() && needs.checks.result == 'success' && vars.ENABLE_LAMBDA == 'true'"
+    uses: KasiDandu/do-gh-shared-actions/.github/workflows/lambda-build-publish-deploy.yaml@release/v1
+    with:
+      environment: prod
+      data_pipeline: ${{ vars.DATA_PIPELINE }}
+      blueprint_type: ${{ vars.BLUEPRINT_TYPE }}
+      infra_ref: main
+    secrets:
+      INFRA_REPO_TOKEN: ${{ secrets.GH_AUTOMATION_TOKEN }}
